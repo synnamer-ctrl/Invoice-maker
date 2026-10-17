@@ -143,7 +143,7 @@
     <section id="view-company" hidden>
       <form id="company-form" class="panel company-form" autocomplete="on">
         <h2>Company details</h2>
-        <p class="muted">Saved on this device and shown on every invoice and receipt.</p>
+        <p class="muted">Changes save automatically on this device and show on every invoice and receipt.</p>
 
         <div class="logo-field">
           <div id="logo-preview" class="logo-preview">No logo</div>
@@ -166,15 +166,15 @@
           <label>Email <input name="email" type="email" autocomplete="email"></label>
           <label>Phone <input name="phone" type="tel" autocomplete="tel"></label>
         </div>
+        <label>Currency <select name="currency"></select></label>
         <div class="field-row">
-          <label>Currency <select name="currency"></select></label>
           <label>Default tax % <input name="taxRate" type="number" min="0" step="any" inputmode="decimal"></label>
         </div>
         <label>Default notes <textarea name="notes" rows="2" placeholder="Payment terms, bank details"></textarea></label>
 
         <div class="actions">
           <span id="company-saved" class="muted" role="status"></span>
-          <button type="submit" class="btn">Save</button>
+          <button type="submit" class="btn">Done</button>
         </div>
       </form>
     </section>

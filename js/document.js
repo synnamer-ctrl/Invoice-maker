@@ -102,7 +102,13 @@ export function openDocument(doc, { duplicate = false } = {}) {
 
 export function setCompany(next) {
   company = next;
-  // Fill in new company defaults where the current draft has none yet.
+  renderPicker(); // prices show in the company currency
+  update();
+}
+
+// Fill in company defaults where the current draft has none yet.
+export function applyCompanyDefaults(next) {
+  company = next;
   if (draft.taxRate === '' || draft.taxRate == null) draft.taxRate = company.taxRate ?? '';
   if (!draft.notes) draft.notes = company.notes ?? '';
   fillForm();
@@ -446,6 +452,5 @@ function renderPreview(money) {
       <dt class="grand">${isReceipt ? 'Total paid' : 'Total due'}</dt><dd class="grand">${money(total)}</dd>
     </dl>
 
-    ${isReceipt ? '<div class="doc-stamp">Paid</div>' : ''}
     ${draft.notes ? `<section class="doc-notes">${multiline(draft.notes)}</section>` : ''}`;
 }

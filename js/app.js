@@ -1,5 +1,5 @@
 import { getCompany, initCompanyForm } from './company.js';
-import { initDocument, openDocument, setCompany, setProducts } from './document.js';
+import { applyCompanyDefaults, initDocument, openDocument, setCompany, setProducts } from './document.js';
 import { initHistory, renderHistory } from './history.js';
 import { getProducts, initProducts } from './products.js';
 
@@ -32,10 +32,13 @@ initHistory({
   onOpen: (doc) => { if (openDocument(doc)) location.hash = '#create'; },
   onDuplicate: (doc) => { if (openDocument(doc, { duplicate: true })) location.hash = '#create'; },
 });
-initCompanyForm((saved) => {
-  setCompany(saved);
-  // First-time setup continues with the product list.
-  location.hash = getProducts().length ? '#create' : '#products';
+initCompanyForm({
+  onChange: setCompany,
+  onDone: (saved) => {
+    applyCompanyDefaults(saved);
+    // First-time setup continues with the product list.
+    location.hash = getProducts().length ? '#create' : '#products';
+  },
 });
 
 // First run: ask for company details before anything else.

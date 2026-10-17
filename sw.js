@@ -1,5 +1,5 @@
 // Bump this version whenever cached assets change.
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = `invoice-maker-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
