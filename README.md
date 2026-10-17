@@ -5,6 +5,7 @@ A fast invoice and receipt maker that installs as an app (PWA) and works offline
 ## Features
 
 - **Company profile:** logo, company name, registration number, tax ID, address, contact details, currency, default tax rate and notes. Saved on the device.
+- **Products:** set up products and prices once. When making a document, tick the products and enter quantities (or use +/−). One-off items can still be typed in.
 - **Invoices and receipts:** switch type with one tap. Numbers fill in automatically (`INV-0001`, `RCT-0001`) and continue from the last one printed.
 - **Fast entry:** live preview, automatic totals with tax, and Enter on an item row adds the next row.
 - **Print / Save PDF:** prints only the document on A4. The PDF file name defaults to the document number and customer name.
@@ -21,7 +22,8 @@ sw.js                   Service worker (offline caching)
 css/styles.css          Base styles (light/dark)
 js/app.js               Tab routing, SW registration, install button, online/offline status
 js/company.js           Company profile form and logo resizing
-js/document.js          Invoice/receipt editor, numbering and preview
+js/document.js          Invoice/receipt editor, product picker, numbering and preview
+js/products.js          Product catalog (name + price)
 js/storage.js           localStorage helpers
 icons/                  SVG + PNG icons (192, 512, maskable, apple-touch)
 ```

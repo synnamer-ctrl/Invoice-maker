@@ -7,20 +7,34 @@ const DUE_IN_DAYS = 14;
 
 const form = document.getElementById('doc-form');
 const itemsBody = document.getElementById('items-body');
+const itemsTable = document.getElementById('items-table');
+const itemsLegend = document.getElementById('items-legend');
+const picker = document.getElementById('product-picker');
+const pickerEmpty = document.getElementById('picker-empty');
+const productSearch = document.getElementById('product-search');
 const docEl = document.getElementById('doc');
 const companyHint = document.getElementById('company-hint');
 
+// Show a search box once the catalog gets long.
+const SEARCH_THRESHOLD = 6;
+
 let company = null;
+let products = [];
 let draft = null;
 
-export function initDocument(initialCompany) {
+export function initDocument(initialCompany, initialProducts) {
   company = initialCompany;
+  products = initialProducts;
   const saved = load(DRAFT_KEY, null);
   draft = Array.isArray(saved?.items) ? saved : newDraft('invoice');
 
   form.addEventListener('submit', (e) => e.preventDefault());
   form.addEventListener('input', onInput);
   form.addEventListener('keydown', onKeydown);
+  picker.addEventListener('change', onPickerToggle);
+  picker.addEventListener('input', onPickerQty);
+  picker.addEventListener('click', onPickerStep);
+  productSearch.addEventListener('input', renderPicker);
   itemsBody.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-remove]');
     if (btn) removeItem(Number(btn.closest('tr').dataset.index));
@@ -30,6 +44,20 @@ export function initDocument(initialCompany) {
   document.getElementById('print-doc').addEventListener('click', printDoc);
 
   fillForm();
+  update();
+}
+
+export function setProducts(next) {
+  products = next;
+  // Once there is a catalog, the empty starter row is no longer needed.
+  if (products.length) draft.items = draft.items.filter((item) => !isBlankCustom(item));
+  // Keep picked items in step with edits to the catalog.
+  for (const item of draft.items) {
+    const product = productById(item.productId);
+    if (product) Object.assign(item, { description: product.name, price: product.price });
+  }
+  renderPicker();
+  renderItems();
   update();
 }
 
@@ -75,10 +103,27 @@ function newDraft(type) {
     paymentMethod: '',
     clientName: '',
     clientDetails: '',
-    items: [blankItem()],
+    items: products.length ? [] : [blankItem()],
     taxRate: company?.taxRate ?? '',
     notes: company?.notes ?? '',
   };
+}
+
+function productById(id) {
+  return id ? products.find((p) => p.id === id) : undefined;
+}
+
+function pickedItem(productId) {
+  return draft.items.find((item) => item.productId === productId);
+}
+
+// Items typed by hand, plus picked items whose product has since been deleted.
+function isCustom(item) {
+  return !productById(item.productId);
+}
+
+function isBlankCustom(item) {
+  return !item.productId && !item.description.trim() && !num(item.price);
 }
 
 function blankItem() {
@@ -104,11 +149,96 @@ function fillForm() {
   for (const field of ['number', 'date', 'dueDate', 'paymentMethod', 'clientName', 'clientDetails', 'taxRate', 'notes']) {
     elements[field].value = draft[field] ?? '';
   }
+  renderPicker();
   renderItems();
 }
 
+// ---- Product picker -------------------------------------------------------
+
+function renderPicker() {
+  pickerEmpty.hidden = products.length > 0;
+  productSearch.hidden = products.length <= SEARCH_THRESHOLD;
+  const query = productSearch.hidden ? '' : productSearch.value.trim().toLowerCase();
+  const money = moneyFormatter();
+
+  picker.replaceChildren(...products
+    .filter((p) => p.name.toLowerCase().includes(query))
+    .map((product) => {
+      const li = document.createElement('li');
+      li.dataset.id = product.id;
+      li.innerHTML = `
+        <label class="pick">
+          <input type="checkbox">
+          <span class="pick-text">
+            <span class="pick-name"></span>
+            <span class="pick-price"></span>
+          </span>
+        </label>
+        <div class="stepper">
+          <button type="button" data-step="-1" aria-label="Decrease">&minus;</button>
+          <input type="number" min="0" step="any" inputmode="decimal" placeholder="0">
+          <button type="button" data-step="1" aria-label="Increase">+</button>
+        </div>`;
+      li.querySelector('.pick-name').textContent = product.name;
+      li.querySelector('.pick-price').textContent = money(num(product.price));
+      li.querySelector('.stepper input').setAttribute('aria-label', `Quantity of ${product.name}`);
+      syncPickerRow(li);
+      return li;
+    }));
+}
+
+function syncPickerRow(li) {
+  const item = pickedItem(li.dataset.id);
+  li.classList.toggle('picked', Boolean(item));
+  li.querySelector('input[type=checkbox]').checked = Boolean(item);
+  const qtyInput = li.querySelector('.stepper input');
+  if (document.activeElement !== qtyInput) qtyInput.value = item?.qty ?? '';
+}
+
+function setPicked(productId, qty) {
+  const item = pickedItem(productId);
+  if (qty === null) {
+    draft.items = draft.items.filter((i) => i !== item);
+  } else if (item) {
+    item.qty = qty;
+  } else {
+    const product = productById(productId);
+    draft.items.push({ productId, description: product.name, qty, price: product.price });
+  }
+  syncPickerRow(picker.querySelector(`li[data-id="${CSS.escape(productId)}"]`));
+  update();
+}
+
+function onPickerToggle(e) {
+  if (e.target.type !== 'checkbox') return;
+  setPicked(e.target.closest('li').dataset.id, e.target.checked ? '1' : null);
+}
+
+function onPickerQty(e) {
+  if (!e.target.closest('.stepper')) return;
+  const { id } = e.target.closest('li').dataset;
+  const { value } = e.target;
+  if (value === '') {
+    // Mid-edit: keep the product picked until a quantity is entered.
+    if (pickedItem(id)) setPicked(id, '');
+  } else {
+    setPicked(id, num(value) > 0 ? value : null);
+  }
+}
+
+function onPickerStep(e) {
+  const btn = e.target.closest('[data-step]');
+  if (!btn) return;
+  const { id } = btn.closest('li').dataset;
+  const next = Math.max(0, num(pickedItem(id)?.qty) + Number(btn.dataset.step));
+  setPicked(id, next > 0 ? String(next) : null);
+}
+
 function renderItems() {
-  itemsBody.replaceChildren(...draft.items.map((item, index) => {
+  const rows = draft.items.map((item, index) => [item, index]).filter(([item]) => isCustom(item));
+  itemsTable.hidden = rows.length === 0;
+  itemsLegend.textContent = products.length ? 'Other items' : 'Items';
+  itemsBody.replaceChildren(...rows.map(([item, index]) => {
     const tr = document.createElement('tr');
     tr.dataset.index = index;
     tr.innerHTML = `
@@ -124,6 +254,7 @@ function renderItems() {
 
 function onInput(e) {
   const target = e.target;
+  if (target.closest('#product-picker') || target === productSearch) return;
   const row = target.closest('tr[data-index]');
   if (row) {
     draft.items[row.dataset.index][target.dataset.field] = target.value;
@@ -141,8 +272,8 @@ function onKeydown(e) {
   const row = e.target.closest('tr[data-index]');
   if (!row) return;
   e.preventDefault();
-  if (Number(row.dataset.index) === draft.items.length - 1) addItem();
-  else itemsBody.children[Number(row.dataset.index) + 1].querySelector('input').focus();
+  if (row.nextElementSibling) row.nextElementSibling.querySelector('input').focus();
+  else addItem();
 }
 
 function switchType(type) {
@@ -161,7 +292,7 @@ function addItem() {
 
 function removeItem(index) {
   draft.items.splice(index, 1);
-  if (draft.items.length === 0) draft.items.push(blankItem());
+  if (!products.length && !draft.items.some(isCustom)) draft.items.push(blankItem());
   renderItems();
   update();
 }
@@ -189,8 +320,8 @@ function update() {
   companyHint.hidden = Boolean(company?.name);
 
   const money = moneyFormatter();
-  [...itemsBody.children].forEach((tr, i) => {
-    const item = draft.items[i];
+  [...itemsBody.children].forEach((tr) => {
+    const item = draft.items[tr.dataset.index];
     tr.querySelector('[data-amount]').textContent = money(num(item.qty) * num(item.price));
   });
 

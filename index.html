@@ -21,6 +21,7 @@
     <h1>Invoice Maker</h1>
     <nav class="tabs">
       <a href="#create" data-view="create">Create</a>
+      <a href="#products" data-view="products">Products</a>
       <a href="#company" data-view="company">Company</a>
     </nav>
     <button id="install-btn" class="btn" hidden>Install</button>
@@ -61,8 +62,17 @@
         </fieldset>
 
         <fieldset>
-          <legend>Items</legend>
-          <table class="items">
+          <legend>Products</legend>
+          <p id="picker-empty" class="hint">
+            Add your products and prices on the <a href="#products">Products</a> tab once, then just tick them here.
+          </p>
+          <input id="product-search" type="search" placeholder="Search products" aria-label="Search products" hidden>
+          <ul id="product-picker" class="picker"></ul>
+        </fieldset>
+
+        <fieldset>
+          <legend id="items-legend">Other items</legend>
+          <table id="items-table" class="items">
             <thead>
               <tr><th>Description</th><th>Qty</th><th>Price</th><th class="amount-col">Amount</th><th><span class="sr-only">Remove</span></th></tr>
             </thead>
@@ -81,6 +91,27 @@
 
       <div class="preview">
         <article id="doc" class="doc" aria-label="Document preview"></article>
+      </div>
+    </section>
+
+    <!-- Product catalog -->
+    <section id="view-products" hidden>
+      <div class="panel products-panel">
+        <h2>Products</h2>
+        <p class="muted">Set up your products and services with prices once. When making an invoice or receipt, just tick them and enter the quantity.</p>
+
+        <form id="product-form" class="product-add" autocomplete="off">
+          <label>Name <input name="name" required placeholder="e.g. Haircut"></label>
+          <label>Price <input name="price" type="number" min="0" step="any" inputmode="decimal" required placeholder="0.00"></label>
+          <button type="submit" class="btn">Add</button>
+        </form>
+
+        <p id="products-empty" class="muted">No products yet.</p>
+        <ul id="product-list" class="product-list"></ul>
+
+        <div class="actions">
+          <a href="#create" class="btn">Done</a>
+        </div>
       </div>
     </section>
 

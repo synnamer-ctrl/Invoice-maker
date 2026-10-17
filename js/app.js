@@ -1,5 +1,6 @@
 import { getCompany, initCompanyForm } from './company.js';
-import { initDocument, setCompany } from './document.js';
+import { initDocument, setCompany, setProducts } from './document.js';
+import { getProducts, initProducts } from './products.js';
 
 const statusEl = document.getElementById('status');
 const installBtn = document.getElementById('install-btn');
@@ -7,6 +8,7 @@ const installBtn = document.getElementById('install-btn');
 // App setup and hash routing (#create, #company)
 const views = {
   create: document.getElementById('view-create'),
+  products: document.getElementById('view-products'),
   company: document.getElementById('view-company'),
 };
 
@@ -21,10 +23,12 @@ function route() {
 }
 
 const company = getCompany();
-initDocument(company);
+initDocument(company, getProducts());
+initProducts(setProducts);
 initCompanyForm((saved) => {
   setCompany(saved);
-  location.hash = '#create';
+  // First-time setup continues with the product list.
+  location.hash = getProducts().length ? '#create' : '#products';
 });
 
 // First run: ask for company details before anything else.
