@@ -53,7 +53,7 @@ Open http://localhost:8080.
 
 ## Notes
 
-- **Caching:** the service worker fetches pages from the network first and falls back to the cached shell offline. Static assets are served from the cache first.
+- **Caching:** the service worker always fetches from the network first (revalidating, so the page, styles and scripts come from the same deployed version) and falls back to the cache when offline.
 - **Updating:** when you change cached files, bump `CACHE_VERSION` in `sw.js`. Add new static files to `PRECACHE_URLS`.
 - **Install:** an "Install" button appears when the browser offers installation.
 - **Deploy:** works on any static host (GitHub Pages, Netlify, Vercel, Cloudflare Pages). All paths are relative, so it also works from a subpath like `/Invoice-maker/`.
