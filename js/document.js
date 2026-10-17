@@ -15,6 +15,9 @@ const productSearch = document.getElementById('product-search');
 const docEl = document.getElementById('doc');
 const companyHint = document.getElementById('company-hint');
 
+// Draft fields bound to same-named form inputs.
+const FIELDS = ['number', 'date', 'dueDate', 'paymentMethod', 'clientName', 'clientDetails', 'taxRate', 'deliveryCharge', 'notes'];
+
 // Show a search box once the catalog gets long.
 const SEARCH_THRESHOLD = 6;
 
@@ -105,6 +108,7 @@ function newDraft(type) {
     clientDetails: '',
     items: products.length ? [] : [blankItem()],
     taxRate: company?.taxRate ?? '',
+    deliveryCharge: '',
     notes: company?.notes ?? '',
   };
 }
@@ -138,7 +142,8 @@ function num(value) {
 function totals() {
   const subtotal = draft.items.reduce((sum, item) => sum + num(item.qty) * num(item.price), 0);
   const tax = subtotal * num(draft.taxRate) / 100;
-  return { subtotal, tax, total: subtotal + tax };
+  const delivery = num(draft.deliveryCharge);
+  return { subtotal, tax, delivery, total: subtotal + tax + delivery };
 }
 
 // ---- Editor ---------------------------------------------------------------
@@ -146,7 +151,7 @@ function totals() {
 function fillForm() {
   const { elements } = form;
   for (const radio of elements.type) radio.checked = radio.value === draft.type;
-  for (const field of ['number', 'date', 'dueDate', 'paymentMethod', 'clientName', 'clientDetails', 'taxRate', 'notes']) {
+  for (const field of FIELDS) {
     elements[field].value = draft[field] ?? '';
   }
   renderPicker();
@@ -260,7 +265,7 @@ function onInput(e) {
     draft.items[row.dataset.index][target.dataset.field] = target.value;
   } else if (target.name === 'type') {
     switchType(target.value);
-  } else if (target.name in draft) {
+  } else if (FIELDS.includes(target.name)) {
     draft[target.name] = target.value;
   }
   update();
@@ -359,7 +364,7 @@ function renderPreview(money) {
   const c = company ?? {};
   const isReceipt = draft.type === 'receipt';
   const items = draft.items.filter((i) => i.description.trim() || num(i.price));
-  const { subtotal, tax, total } = totals();
+  const { subtotal, tax, delivery, total } = totals();
   const contact = [c.email, c.phone].filter(Boolean).map(esc).join(' &middot; ');
 
   const meta = [
@@ -405,9 +410,9 @@ function renderPreview(money) {
     </table>
 
     <dl class="doc-totals">
-      ${num(draft.taxRate) ? `
-        <dt>Subtotal</dt><dd>${money(subtotal)}</dd>
-        <dt>Tax (${esc(num(draft.taxRate))}%)</dt><dd>${money(tax)}</dd>` : ''}
+      ${num(draft.taxRate) || delivery ? `<dt>Subtotal</dt><dd>${money(subtotal)}</dd>` : ''}
+      ${num(draft.taxRate) ? `<dt>Tax (${esc(num(draft.taxRate))}%)</dt><dd>${money(tax)}</dd>` : ''}
+      ${delivery ? `<dt>Delivery</dt><dd>${money(delivery)}</dd>` : ''}
       <dt class="grand">${isReceipt ? 'Total paid' : 'Total due'}</dt><dd class="grand">${money(total)}</dd>
     </dl>
 

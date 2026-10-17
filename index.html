@@ -49,7 +49,6 @@
           <label class="receipt-only">Payment method
             <input name="paymentMethod" list="payment-methods" placeholder="e.g. Cash">
           </label>
-          <label>Tax % <input name="taxRate" type="number" min="0" step="any" inputmode="decimal"></label>
         </div>
         <datalist id="payment-methods">
           <option value="Cash"><option value="Card"><option value="Bank transfer"><option value="Online payment">
@@ -80,6 +79,11 @@
           </table>
           <button type="button" id="add-item" class="btn btn-secondary">+ Add item</button>
         </fieldset>
+
+        <div class="field-row">
+          <label>Tax % <input name="taxRate" type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label>
+          <label>Delivery charge <input name="deliveryCharge" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00"></label>
+        </div>
 
         <label>Notes <textarea name="notes" rows="2" placeholder="Payment terms, bank details, thank-you note"></textarea></label>
 

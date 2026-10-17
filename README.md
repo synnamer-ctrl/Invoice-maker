@@ -7,7 +7,7 @@ A fast invoice and receipt maker that installs as an app (PWA) and works offline
 - **Company profile:** logo, company name, registration number, tax ID, address, contact details, currency, default tax rate and notes. Saved on the device.
 - **Products:** set up products and prices once. When making a document, tick the products and enter quantities (or use +/−). One-off items can still be typed in.
 - **Invoices and receipts:** switch type with one tap. Numbers fill in automatically (`INV-0001`, `RCT-0001`) and continue from the last one printed.
-- **Fast entry:** live preview, automatic totals with tax, and Enter on an item row adds the next row.
+- **Fast entry:** live preview, automatic totals with tax and delivery charge, and Enter on an item row adds the next row.
 - **Print / Save PDF:** prints only the document on A4. The PDF file name defaults to the document number and customer name.
 - **Auto-save:** the current document is kept if the app is closed.
 
