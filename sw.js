@@ -1,5 +1,5 @@
 // Bump this version whenever cached assets change.
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = `invoice-maker-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -21,7 +21,11 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    // cache: 'reload' skips the browser's HTTP cache. GitHub Pages lets files
+    // be reused for 10 minutes, which could otherwise store old files here.
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(
+      PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' }))
+    ))
   );
 });
 
@@ -46,31 +50,20 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Navigations: network first, fall back to cached shell when offline.
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  // Static assets: cache first, then network (and cache the result).
+  // Network first, so the page, styles and scripts always come from the same
+  // deployed version. 'no-cache' revalidates with the server (a quick 304 when
+  // unchanged) instead of trusting the browser's HTTP cache. Offline, fall back
+  // to the cached copy.
+  const isPage = request.mode === 'navigate';
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
+    fetch(request, { cache: 'no-cache' })
+      .then((response) => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(isPage ? './index.html' : request, copy));
         }
         return response;
-      });
-    })
+      })
+      .catch(async () => (await caches.match(isPage ? './index.html' : request)) ?? Response.error())
   );
 });
