@@ -43,6 +43,10 @@ if (!company && !location.hash) location.hash = '#company';
 window.addEventListener('hashchange', route);
 route();
 
+// All data lives on the device, so ask the browser not to clear it when
+// space runs low. Installed apps are usually granted this automatically.
+navigator.storage?.persist?.().catch(() => {});
+
 // Service worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {

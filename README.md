@@ -12,7 +12,15 @@ A fast invoice and receipt maker that installs as an app (PWA) and works offline
 - **Print / Save PDF:** prints only the document on A4. The PDF file name defaults to the document number and customer name.
 - **Auto-save:** the current document is kept if the app is closed.
 
-All data stays in the browser's `localStorage` on this device. Nothing is sent to a server.
+## Where data is stored
+
+Everything stays on the phone:
+
+- Company details, products, the current draft and history are kept in the browser's `localStorage` on the device. The app asks the browser to keep this storage permanently (`navigator.storage.persist()`).
+- **Print / Save PDF** opens the phone's print/share sheet, and the PDF is saved wherever the user chooses (Files, Downloads, WhatsApp, etc.).
+- Nothing is sent to a server or to GitHub. The repository only holds the app's code, which a static host serves so the app can be installed.
+
+Clearing the browser's site data or uninstalling the app deletes the saved data.
 
 ## Structure
 
