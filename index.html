@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Make invoices and receipts fast, with your company logo and details.">
+  <meta name="theme-color" content="#2563eb">
+  <title>Invoice Maker</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Invoice Maker">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>Invoice Maker</h1>
+    <nav class="tabs">
+      <a href="#create" data-view="create">Create</a>
+      <a href="#history" data-view="history">History</a>
+      <a href="#products" data-view="products">Products</a>
+      <a href="#company" data-view="company">Company</a>
+    </nav>
+    <button id="install-btn" class="btn" hidden>Install</button>
+  </header>
+
+  <main class="app-main">
+    <!-- Create invoice / receipt -->
+    <section id="view-create" class="view-create" hidden>
+      <form id="doc-form" class="panel editor" autocomplete="off">
+        <p id="company-hint" class="hint" hidden>
+          Add your logo and company details on the <a href="#company">Company</a> tab.
+        </p>
+
+        <p id="history-note" class="hint" hidden>
+          Saved in <a href="#history">History</a>. Changes save automatically.
+        </p>
+
+        <div class="segmented" role="radiogroup" aria-label="Document type">
+          <label><input type="radio" name="type" value="invoice"> Invoice</label>
+          <label><input type="radio" name="type" value="receipt"> Receipt</label>
+        </div>
+
+        <div class="field-row">
+          <label>Number <input name="number" required></label>
+          <label>Date <input name="date" type="date"></label>
+        </div>
+        <div class="field-row">
+          <label class="invoice-only">Due date <input name="dueDate" type="date"></label>
+          <label class="receipt-only">Payment method
+            <input name="paymentMethod" list="payment-methods" placeholder="e.g. Cash">
+          </label>
+        </div>
+        <datalist id="payment-methods">
+          <option value="Cash"><option value="Card"><option value="Bank transfer"><option value="Online payment">
+        </datalist>
+
+        <fieldset>
+          <legend class="bill-to-label">Bill to</legend>
+          <label>Name <input name="clientName" placeholder="Customer or company name"></label>
+          <label>Details <textarea name="clientDetails" rows="2" placeholder="Address, email, phone"></textarea></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Products</legend>
+          <p id="picker-empty" class="hint">
+            Add your products and prices on the <a href="#products">Products</a> tab once, then just tick them here.
+          </p>
+          <input id="product-search" type="search" placeholder="Search products" aria-label="Search products" hidden>
+          <ul id="product-picker" class="picker"></ul>
+        </fieldset>
+
+        <fieldset>
+          <legend id="items-legend">Other items</legend>
+          <table id="items-table" class="items">
+            <thead>
+              <tr><th>Description</th><th>Qty</th><th>Price</th><th class="amount-col">Amount</th><th><span class="sr-only">Remove</span></th></tr>
+            </thead>
+            <tbody id="items-body"></tbody>
+          </table>
+          <button type="button" id="add-item" class="btn btn-secondary">+ Add item</button>
+        </fieldset>
+
+        <div class="field-row">
+          <label>Tax % <input name="taxRate" type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label>
+          <label>Delivery charge <input name="deliveryCharge" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00"></label>
+        </div>
+
+        <label>Notes <textarea name="notes" rows="2" placeholder="Payment terms, bank details, thank-you note"></textarea></label>
+
+        <div class="actions">
+          <button type="button" id="new-doc" class="btn btn-secondary">New</button>
+          <button type="button" id="save-doc" class="btn btn-secondary">Save</button>
+          <button type="button" id="print-doc" class="btn">Print / Save PDF</button>
+        </div>
+      </form>
+
+      <div class="preview">
+        <article id="doc" class="doc" aria-label="Document preview"></article>
+      </div>
+    </section>
+
+    <!-- Saved invoices and receipts -->
+    <section id="view-history" hidden>
+      <div class="panel history-panel">
+        <h2>History</h2>
+        <p class="muted">Tap an invoice or receipt to open and edit it.</p>
+        <input id="history-search" type="search" placeholder="Search by number or customer" aria-label="Search history">
+        <p id="history-empty" class="muted"></p>
+        <ul id="history-list" class="history-list"></ul>
+      </div>
+    </section>
+
+    <!-- Product catalog -->
+    <section id="view-products" hidden>
+      <div class="panel products-panel">
+        <h2>Products</h2>
+        <p class="muted">Set up your products and services with prices once. When making an invoice or receipt, just tick them and enter the quantity.</p>
+
+        <form id="product-form" class="product-add" autocomplete="off">
+          <label>Name <input name="name" required placeholder="e.g. Haircut"></label>
+          <label>Price <input name="price" type="number" min="0" step="any" inputmode="decimal" required placeholder="0.00"></label>
+          <button type="submit" class="btn">Add</button>
+        </form>
+
+        <p id="products-empty" class="muted">No products yet.</p>
+        <ul id="product-list" class="product-list"></ul>
+
+        <div class="actions">
+          <a href="#create" class="btn">Done</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Company profile -->
+    <section id="view-company" hidden>
+      <form id="company-form" class="panel company-form" autocomplete="on">
+        <h2>Company details</h2>
+        <p class="muted">Saved on this device and shown on every invoice and receipt.</p>
+
+        <div class="logo-field">
+          <div id="logo-preview" class="logo-preview">No logo</div>
+          <div class="logo-buttons">
+            <label class="btn btn-secondary file-btn">
+              Upload logo
+              <input type="file" name="logoFile" accept="image/*" class="sr-only">
+            </label>
+            <button type="button" id="remove-logo" class="btn btn-link" hidden>Remove</button>
+          </div>
+        </div>
+
+        <label>Company name <input name="name" required autocomplete="organization"></label>
+        <div class="field-row">
+          <label>Registration no. <input name="regNo"></label>
+          <label>Tax / VAT ID <input name="taxId"></label>
+        </div>
+        <label>Address <textarea name="address" rows="3" autocomplete="street-address"></textarea></label>
+        <div class="field-row">
+          <label>Email <input name="email" type="email" autocomplete="email"></label>
+          <label>Phone <input name="phone" type="tel" autocomplete="tel"></label>
+        </div>
+        <div class="field-row">
+          <label>Currency <select name="currency"></select></label>
+          <label>Default tax % <input name="taxRate" type="number" min="0" step="any" inputmode="decimal"></label>
+        </div>
+        <label>Default notes <textarea name="notes" rows="2" placeholder="Payment terms, bank details"></textarea></label>
+
+        <div class="actions">
+          <span id="company-saved" class="muted" role="status"></span>
+          <button type="submit" class="btn">Save</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span id="status"></span>
+  </footer>
+
+  <script src="js/app.js" type="module"></script>
+</body>
+</html>
