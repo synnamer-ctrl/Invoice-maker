@@ -1,5 +1,36 @@
+import { getCompany, initCompanyForm } from './company.js';
+import { initDocument, setCompany } from './document.js';
+
 const statusEl = document.getElementById('status');
 const installBtn = document.getElementById('install-btn');
+
+// App setup and hash routing (#create, #company)
+const views = {
+  create: document.getElementById('view-create'),
+  company: document.getElementById('view-company'),
+};
+
+function route() {
+  const name = location.hash.slice(1);
+  const current = name in views ? name : 'create';
+  for (const [key, el] of Object.entries(views)) el.hidden = key !== current;
+  for (const link of document.querySelectorAll('.tabs a')) {
+    if (link.dataset.view === current) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+}
+
+const company = getCompany();
+initDocument(company);
+initCompanyForm((saved) => {
+  setCompany(saved);
+  location.hash = '#create';
+});
+
+// First run: ask for company details before anything else.
+if (!company && !location.hash) location.hash = '#company';
+window.addEventListener('hashchange', route);
+route();
 
 // Service worker registration
 if ('serviceWorker' in navigator) {
@@ -7,10 +38,12 @@ if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('./sw.js');
 
-      // Reload once a new service worker takes control
+      // Reload once a new service worker replaces the old one. On the very first
+      // install there is no old worker, so there is nothing stale to reload.
+      const hadController = Boolean(navigator.serviceWorker.controller);
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
+        if (!hadController || refreshing) return;
         refreshing = true;
         window.location.reload();
       });

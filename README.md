@@ -1,6 +1,16 @@
 # Invoice-maker
 
-An empty Progressive Web App (PWA) starter for Invoice Maker. It uses plain HTML, CSS and JS, with no build step and no dependencies.
+A fast invoice and receipt maker that installs as an app (PWA) and works offline. It uses plain HTML, CSS and JS, with no build step and no dependencies.
+
+## Features
+
+- **Company profile:** logo, company name, registration number, tax ID, address, contact details, currency, default tax rate and notes. Saved on the device.
+- **Invoices and receipts:** switch type with one tap. Numbers fill in automatically (`INV-0001`, `RCT-0001`) and continue from the last one printed.
+- **Fast entry:** live preview, automatic totals with tax, and Enter on an item row adds the next row.
+- **Print / Save PDF:** prints only the document on A4. The PDF file name defaults to the document number and customer name.
+- **Auto-save:** the current document is kept if the app is closed.
+
+All data stays in the browser's `localStorage` on this device. Nothing is sent to a server.
 
 ## Structure
 
@@ -9,7 +19,10 @@ index.html              App shell
 manifest.webmanifest    PWA manifest (name, icons, colors, display mode)
 sw.js                   Service worker (offline caching)
 css/styles.css          Base styles (light/dark)
-js/app.js               SW registration, install button, online/offline status
+js/app.js               Tab routing, SW registration, install button, online/offline status
+js/company.js           Company profile form and logo resizing
+js/document.js          Invoice/receipt editor, numbering and preview
+js/storage.js           localStorage helpers
 icons/                  SVG + PNG icons (192, 512, maskable, apple-touch)
 ```
 
