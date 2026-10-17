@@ -49,7 +49,9 @@ export function initDocument(initialCompany, initialProducts) {
   document.getElementById('add-item').addEventListener('click', addItem);
   document.getElementById('new-doc').addEventListener('click', startNew);
   document.getElementById('print-doc').addEventListener('click', printDoc);
-  saveBtn.addEventListener('click', saveDocument);
+  saveBtn.addEventListener('click', () => {
+    if (saveDocument()) startNext();
+  });
 
   fillForm();
   update();
@@ -362,11 +364,51 @@ function saveDocument() {
 
 function printDoc() {
   if (!saveDocument()) return;
+  const printedId = draft.id;
   // The document title becomes the default PDF file name.
   const title = document.title;
   document.title = [draft.number, draft.clientName].filter(Boolean).join(' ');
-  window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
+  window.addEventListener('afterprint', () => {
+    document.title = title;
+    // On phones the print screen covers the app; wait until the user is back
+    // so the page is never changed while it is still being printed.
+    whenVisible(() => setTimeout(() => {
+      if (draft.id === printedId) startNext();
+    }, 300));
+  }, { once: true });
   window.print();
+}
+
+// A saved or printed document is finished: move on to the next number of
+// the same type. The finished one stays in History.
+function startNext() {
+  const { type, number } = draft;
+  draft = newDraft(type);
+  fillForm();
+  update();
+  showToast(`Saved ${number}. Next: ${draft.number}`);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function whenVisible(fn) {
+  if (!document.hidden) {
+    fn();
+    return;
+  }
+  document.addEventListener('visibilitychange', function onVisible() {
+    if (document.hidden) return;
+    document.removeEventListener('visibilitychange', onVisible);
+    fn();
+  });
+}
+
+let toastTimer;
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 3500);
 }
 
 function update() {
