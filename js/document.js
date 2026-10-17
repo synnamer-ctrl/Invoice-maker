@@ -63,7 +63,7 @@ export function setProducts(next) {
   // documents already saved in history at the prices they were issued with.
   for (const item of draft.id ? [] : draft.items) {
     const product = productById(item.productId);
-    if (product) Object.assign(item, { description: product.name, price: product.price });
+    if (product) Object.assign(item, { description: product.name, details: product.details ?? '', price: product.price });
   }
   renderPicker();
   renderItems();
@@ -83,7 +83,9 @@ export function openDocument(doc, { duplicate = false } = {}) {
       // A new sale uses today's catalog prices.
       items: doc.items.map((item) => {
         const product = productById(item.productId);
-        return product ? { ...item, description: product.name, price: product.price } : { ...item };
+        return product
+          ? { ...item, description: product.name, details: product.details ?? '', price: product.price }
+          : { ...item };
       }),
       taxRate: doc.taxRate,
       deliveryCharge: doc.deliveryCharge ?? '',
@@ -100,7 +102,13 @@ export function openDocument(doc, { duplicate = false } = {}) {
 
 export function setCompany(next) {
   company = next;
-  // Fill in new company defaults where the current draft has none yet.
+  renderPicker(); // prices show in the company currency
+  update();
+}
+
+// Fill in company defaults where the current draft has none yet.
+export function applyCompanyDefaults(next) {
+  company = next;
   if (draft.taxRate === '' || draft.taxRate == null) draft.taxRate = company.taxRate ?? '';
   if (!draft.notes) draft.notes = company.notes ?? '';
   fillForm();
@@ -201,6 +209,7 @@ function renderPicker() {
           <span class="pick-text">
             <span class="pick-name"></span>
             <span class="pick-price"></span>
+            <span class="pick-details"></span>
           </span>
         </label>
         <div class="stepper">
@@ -209,6 +218,7 @@ function renderPicker() {
           <button type="button" data-step="1" aria-label="Increase">+</button>
         </div>`;
       li.querySelector('.pick-name').textContent = product.name;
+      li.querySelector('.pick-details').textContent = product.details ?? '';
       li.querySelector('.stepper input').setAttribute('aria-label', `Quantity of ${product.name}`);
       syncPickerRow(li);
       return li;
@@ -233,7 +243,7 @@ function setPicked(productId, qty) {
     item.qty = qty;
   } else {
     const product = productById(productId);
-    draft.items.push({ productId, description: product.name, qty, price: product.price });
+    draft.items.push({ productId, description: product.name, details: product.details ?? '', qty, price: product.price });
   }
   syncPickerRow(picker.querySelector(`li[data-id="${CSS.escape(productId)}"]`));
   update();
@@ -427,7 +437,7 @@ function renderPreview(money) {
       <tbody>
         ${items.length ? items.map((i) => `
           <tr>
-            <td>${esc(i.description)}</td>
+            <td>${esc(i.description)}${i.details ? `<div class="doc-item-details">${multiline(i.details)}</div>` : ''}</td>
             <td class="num">${esc(num(i.qty))}</td>
             <td class="num">${money(num(i.price))}</td>
             <td class="num">${money(num(i.qty) * num(i.price))}</td>
@@ -442,6 +452,5 @@ function renderPreview(money) {
       <dt class="grand">${isReceipt ? 'Total paid' : 'Total due'}</dt><dd class="grand">${money(total)}</dd>
     </dl>
 
-    ${isReceipt ? '<div class="doc-stamp">Paid</div>' : ''}
     ${draft.notes ? `<section class="doc-notes">${multiline(draft.notes)}</section>` : ''}`;
 }

@@ -25,9 +25,11 @@ export function initProducts(onChange) {
       li.innerHTML = `
         <input data-field="name" aria-label="Product name" required>
         <input data-field="price" aria-label="Price" type="number" min="0" step="any" inputmode="decimal">
+        <textarea data-field="details" aria-label="Details" rows="1" placeholder="Details (optional)"></textarea>
         <button type="button" class="icon-btn" data-delete aria-label="Delete product">&times;</button>`;
       li.querySelector('[data-field=name]').value = product.name;
       li.querySelector('[data-field=price]').value = product.price;
+      li.querySelector('[data-field=details]').value = product.details ?? '';
       return li;
     }));
   }
@@ -36,7 +38,12 @@ export function initProducts(onChange) {
     e.preventDefault();
     const name = form.elements.name.value.trim();
     if (!name) return;
-    products = [...products, { id: newId(), name, price: form.elements.price.value }];
+    products = [...products, {
+      id: newId(),
+      name,
+      details: form.elements.details.value.trim(),
+      price: form.elements.price.value,
+    }];
     persist();
     render();
     form.reset();
@@ -47,7 +54,7 @@ export function initProducts(onChange) {
   list.addEventListener('input', (e) => {
     const { id } = e.target.closest('li').dataset;
     const field = e.target.dataset.field;
-    products = products.map((p) => (p.id === id ? { ...p, [field]: field === 'name' ? e.target.value.trim() : e.target.value } : p));
+    products = products.map((p) => (p.id === id ? { ...p, [field]: field === 'price' ? e.target.value : e.target.value.trim() } : p));
     persist();
   });
 
