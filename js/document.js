@@ -1,4 +1,6 @@
-import { load, save } from './storage.js';
+import { computeTotals, esc, formatDate, moneyFormatter, multiline, num } from './format.js';
+import { inHistory, putInHistory } from './history.js';
+import { load, newId, save } from './storage.js';
 
 const DRAFT_KEY = 'draft';
 const COUNTERS_KEY = 'counters';
@@ -14,6 +16,8 @@ const pickerEmpty = document.getElementById('picker-empty');
 const productSearch = document.getElementById('product-search');
 const docEl = document.getElementById('doc');
 const companyHint = document.getElementById('company-hint');
+const historyNote = document.getElementById('history-note');
+const saveBtn = document.getElementById('save-doc');
 
 // Draft fields bound to same-named form inputs.
 const FIELDS = ['number', 'date', 'dueDate', 'paymentMethod', 'clientName', 'clientDetails', 'taxRate', 'deliveryCharge', 'notes'];
@@ -45,6 +49,7 @@ export function initDocument(initialCompany, initialProducts) {
   document.getElementById('add-item').addEventListener('click', addItem);
   document.getElementById('new-doc').addEventListener('click', startNew);
   document.getElementById('print-doc').addEventListener('click', printDoc);
+  saveBtn.addEventListener('click', saveDocument);
 
   fillForm();
   update();
@@ -54,14 +59,43 @@ export function setProducts(next) {
   products = next;
   // Once there is a catalog, the empty starter row is no longer needed.
   if (products.length) draft.items = draft.items.filter((item) => !isBlankCustom(item));
-  // Keep picked items in step with edits to the catalog.
-  for (const item of draft.items) {
+  // Keep picked items in step with edits to the catalog, but leave
+  // documents already saved in history at the prices they were issued with.
+  for (const item of draft.id ? [] : draft.items) {
     const product = productById(item.productId);
     if (product) Object.assign(item, { description: product.name, price: product.price });
   }
   renderPicker();
   renderItems();
   update();
+}
+
+// Load a history document into the editor. With duplicate, start a new
+// unsaved document with the same customer and items. Returns false if the
+// user chose to keep the current unsaved document.
+export function openDocument(doc, { duplicate = false } = {}) {
+  if (!draft.id && hasContent() && !confirm('Discard the current unsaved document?')) return false;
+  if (duplicate) {
+    draft = {
+      ...newDraft(doc.type),
+      clientName: doc.clientName,
+      clientDetails: doc.clientDetails,
+      // A new sale uses today's catalog prices.
+      items: doc.items.map((item) => {
+        const product = productById(item.productId);
+        return product ? { ...item, description: product.name, price: product.price } : { ...item };
+      }),
+      taxRate: doc.taxRate,
+      deliveryCharge: doc.deliveryCharge ?? '',
+      paymentMethod: doc.paymentMethod,
+      notes: doc.notes,
+    };
+  } else {
+    draft = structuredClone(doc);
+  }
+  fillForm();
+  update();
+  return true;
 }
 
 export function setCompany(next) {
@@ -134,16 +168,8 @@ function blankItem() {
   return { description: '', qty: '1', price: '' };
 }
 
-function num(value) {
-  const n = parseFloat(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function totals() {
-  const subtotal = draft.items.reduce((sum, item) => sum + num(item.qty) * num(item.price), 0);
-  const tax = subtotal * num(draft.taxRate) / 100;
-  const delivery = num(draft.deliveryCharge);
-  return { subtotal, tax, delivery, total: subtotal + tax + delivery };
+function hasContent() {
+  return Boolean(draft.clientName) || draft.items.some((i) => i.description || num(i.price));
 }
 
 // ---- Editor ---------------------------------------------------------------
@@ -164,8 +190,6 @@ function renderPicker() {
   pickerEmpty.hidden = products.length > 0;
   productSearch.hidden = products.length <= SEARCH_THRESHOLD;
   const query = productSearch.hidden ? '' : productSearch.value.trim().toLowerCase();
-  const money = moneyFormatter();
-
   picker.replaceChildren(...products
     .filter((p) => p.name.toLowerCase().includes(query))
     .map((product) => {
@@ -185,7 +209,6 @@ function renderPicker() {
           <button type="button" data-step="1" aria-label="Increase">+</button>
         </div>`;
       li.querySelector('.pick-name').textContent = product.name;
-      li.querySelector('.pick-price').textContent = money(num(product.price));
       li.querySelector('.stepper input').setAttribute('aria-label', `Quantity of ${product.name}`);
       syncPickerRow(li);
       return li;
@@ -196,6 +219,8 @@ function syncPickerRow(li) {
   const item = pickedItem(li.dataset.id);
   li.classList.toggle('picked', Boolean(item));
   li.querySelector('input[type=checkbox]').checked = Boolean(item);
+  // A picked item keeps the price it was added at.
+  li.querySelector('.pick-price').textContent = moneyFormatter(company?.currency)(num(item?.price ?? productById(li.dataset.id).price));
   const qtyInput = li.querySelector('.stepper input');
   if (document.activeElement !== qtyInput) qtyInput.value = item?.qty ?? '';
 }
@@ -303,15 +328,30 @@ function removeItem(index) {
 }
 
 function startNew() {
-  const hasContent = draft.clientName || draft.items.some((i) => i.description || num(i.price));
-  if (hasContent && !confirm('Start a new document? The current one will be cleared.')) return;
+  if (!draft.id && hasContent() && !confirm('Start a new document? The current one is not saved and will be cleared.')) return;
   draft = newDraft(draft.type);
   fillForm();
   update();
 }
 
-function printDoc() {
+function saveDocument() {
+  const isNew = !draft.id;
+  if (isNew) {
+    draft.id = newId();
+    draft.savedAt = new Date().toISOString();
+  }
+  if (!putInHistory(draft)) {
+    if (isNew) delete draft.id;
+    alert('Could not save. Storage on this device is full or blocked.');
+    return false;
+  }
   markNumberUsed(draft.type, draft.number);
+  update();
+  return true;
+}
+
+function printDoc() {
+  if (!saveDocument()) return;
   // The document title becomes the default PDF file name.
   const title = document.title;
   document.title = [draft.number, draft.clientName].filter(Boolean).join(' ');
@@ -320,11 +360,22 @@ function printDoc() {
 }
 
 function update() {
+  // Documents opened from history save back to it as they are edited.
+  if (draft.id) {
+    if (!inHistory(draft.id)) {
+      delete draft.id; // deleted from history meanwhile
+      delete draft.savedAt;
+    } else if (!putInHistory(draft)) {
+      alert('Could not save changes. Storage on this device is full or blocked.');
+    }
+  }
   save(DRAFT_KEY, draft);
+  saveBtn.hidden = Boolean(draft.id);
+  historyNote.hidden = !draft.id;
   form.dataset.type = draft.type;
   companyHint.hidden = Boolean(company?.name);
 
-  const money = moneyFormatter();
+  const money = moneyFormatter(company?.currency);
   [...itemsBody.children].forEach((tr) => {
     const item = draft.items[tr.dataset.index];
     tr.querySelector('[data-amount]').textContent = money(num(item.qty) * num(item.price));
@@ -335,36 +386,11 @@ function update() {
 
 // ---- Preview --------------------------------------------------------------
 
-function moneyFormatter() {
-  try {
-    const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: company?.currency || 'USD' });
-    return (n) => fmt.format(n);
-  } catch {
-    return (n) => n.toFixed(2);
-  }
-}
-
-function esc(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-}
-
-function multiline(value) {
-  return esc(value).replace(/\n/g, '<br>');
-}
-
-function formatDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { dateStyle: 'medium' });
-}
-
 function renderPreview(money) {
   const c = company ?? {};
   const isReceipt = draft.type === 'receipt';
   const items = draft.items.filter((i) => i.description.trim() || num(i.price));
-  const { subtotal, tax, delivery, total } = totals();
+  const { subtotal, tax, delivery, total } = computeTotals(draft);
   const contact = [c.email, c.phone].filter(Boolean).map(esc).join(' &middot; ');
 
   const meta = [

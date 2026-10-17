@@ -1,5 +1,5 @@
 // Bump this version whenever cached assets change.
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `invoice-maker-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -12,6 +12,8 @@ const PRECACHE_URLS = [
   './js/company.js',
   './js/document.js',
   './js/products.js',
+  './js/history.js',
+  './js/format.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -1,5 +1,6 @@
 import { getCompany, initCompanyForm } from './company.js';
-import { initDocument, setCompany, setProducts } from './document.js';
+import { initDocument, openDocument, setCompany, setProducts } from './document.js';
+import { initHistory, renderHistory } from './history.js';
 import { getProducts, initProducts } from './products.js';
 
 const statusEl = document.getElementById('status');
@@ -8,6 +9,7 @@ const installBtn = document.getElementById('install-btn');
 // App setup and hash routing (#create, #company)
 const views = {
   create: document.getElementById('view-create'),
+  history: document.getElementById('view-history'),
   products: document.getElementById('view-products'),
   company: document.getElementById('view-company'),
 };
@@ -20,11 +22,16 @@ function route() {
     if (link.dataset.view === current) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
+  if (current === 'history') renderHistory();
 }
 
 const company = getCompany();
 initDocument(company, getProducts());
 initProducts(setProducts);
+initHistory({
+  onOpen: (doc) => { if (openDocument(doc)) location.hash = '#create'; },
+  onDuplicate: (doc) => { if (openDocument(doc, { duplicate: true })) location.hash = '#create'; },
+});
 initCompanyForm((saved) => {
   setCompany(saved);
   // First-time setup continues with the product list.

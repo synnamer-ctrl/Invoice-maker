@@ -93,7 +93,11 @@ a { color: var(--primary); }
 }
 
 @media (max-width: 480px) {
+  .app-header { gap: 8px; padding-left: 8px; padding-right: 8px; }
   .app-header h1 { display: none; }
+  .tabs { gap: 0; }
+  .tabs a { padding: 6px 8px; font-size: 0.9375rem; }
+  .actions .btn { padding-left: 12px; padding-right: 12px; }
 }
 
 /* ---- Controls ---- */
@@ -106,6 +110,7 @@ a { color: var(--primary); }
   border-radius: 8px;
   background: var(--primary);
   color: #fff;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -213,6 +218,47 @@ legend {
 .logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .logo-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 form .file-btn { display: inline-block; margin: 0; color: var(--fg); font-size: 1rem; cursor: pointer; }
+
+/* ---- History ---- */
+
+.history-panel { max-width: 640px; margin: 0 auto; }
+.history-panel h2 { margin: 0 0 4px; font-size: 1.25rem; }
+.history-panel > p { margin: 0 0 16px; font-size: 0.875rem; }
+#history-search { margin-bottom: 12px; }
+
+.history-list { list-style: none; margin: 0; padding: 0; }
+.history-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.history-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-open:hover .history-number { color: var(--primary); }
+.history-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 0.875rem; }
+.history-number { font-size: 1rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-date { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+.history-total { margin-left: auto; flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.history-client { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+.history-actions .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; }
+.icon-btn-plain:hover { color: var(--primary); }
 
 /* ---- Products ---- */
 

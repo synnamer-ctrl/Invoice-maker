@@ -21,6 +21,7 @@
     <h1>Invoice Maker</h1>
     <nav class="tabs">
       <a href="#create" data-view="create">Create</a>
+      <a href="#history" data-view="history">History</a>
       <a href="#products" data-view="products">Products</a>
       <a href="#company" data-view="company">Company</a>
     </nav>
@@ -33,6 +34,10 @@
       <form id="doc-form" class="panel editor" autocomplete="off">
         <p id="company-hint" class="hint" hidden>
           Add your logo and company details on the <a href="#company">Company</a> tab.
+        </p>
+
+        <p id="history-note" class="hint" hidden>
+          Saved in <a href="#history">History</a>. Changes save automatically.
         </p>
 
         <div class="segmented" role="radiogroup" aria-label="Document type">
@@ -89,12 +94,24 @@
 
         <div class="actions">
           <button type="button" id="new-doc" class="btn btn-secondary">New</button>
+          <button type="button" id="save-doc" class="btn btn-secondary">Save</button>
           <button type="button" id="print-doc" class="btn">Print / Save PDF</button>
         </div>
       </form>
 
       <div class="preview">
         <article id="doc" class="doc" aria-label="Document preview"></article>
+      </div>
+    </section>
+
+    <!-- Saved invoices and receipts -->
+    <section id="view-history" hidden>
+      <div class="panel history-panel">
+        <h2>History</h2>
+        <p class="muted">Tap an invoice or receipt to open and edit it.</p>
+        <input id="history-search" type="search" placeholder="Search by number or customer" aria-label="Search history">
+        <p id="history-empty" class="muted"></p>
+        <ul id="history-list" class="history-list"></ul>
       </div>
     </section>
 

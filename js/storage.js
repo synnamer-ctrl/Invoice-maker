@@ -20,3 +20,7 @@ export function save(key, value) {
     return false;
   }
 }
+
+export function newId() {
+  return crypto.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2);
+}

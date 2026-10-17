@@ -1,14 +1,10 @@
-import { load, save } from './storage.js';
+import { load, newId, save } from './storage.js';
 
 const KEY = 'products';
 let products = load(KEY, []);
 
 export function getProducts() {
   return products;
-}
-
-function newId() {
-  return crypto.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
 export function initProducts(onChange) {
