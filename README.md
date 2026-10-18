@@ -9,6 +9,7 @@ A fast invoice and receipt maker that installs as an app (PWA) and works offline
 - **Invoices and receipts:** switch type with one tap. Numbers count up automatically (`INV-0001`, `INV-0002`…, `RCT-0001`…): after Save or Print, the next document starts with the next number.
 - **Fast entry:** live preview, automatic totals with tax and delivery charge, and Enter on an item row adds the next row.
 - **History:** Save or Print adds the document to History. Open any past invoice or receipt to edit it (changes save automatically), duplicate it for a repeat customer, or delete it.
+- **Share PDF:** makes the PDF on the phone and opens the share sheet (WhatsApp, email, Drive...). Works offline. On browsers that can't share files, it downloads the PDF instead.
 - **Print / Save PDF:** prints only the document on A4. The PDF file name defaults to the document number and customer name.
 - **Auto-save:** the current document is kept if the app is closed.
 
@@ -35,6 +36,8 @@ js/document.js          Invoice/receipt editor, product picker, numbering and pr
 js/products.js          Product catalog (name + price)
 js/history.js           Saved invoices/receipts list
 js/format.js            Totals and number/date formatting
+js/share.js             PDF building (html2canvas + jsPDF) and sharing
+vendor/                 Third-party libraries served with the app (MIT)
 js/storage.js           localStorage helpers
 icons/                  SVG + PNG icons (192, 512, maskable, apple-touch)
 ```

@@ -185,6 +185,10 @@ legend {
   margin-top: 8px;
 }
 
+.actions-doc { flex-wrap: wrap; }
+.actions-doc .btn-share { flex: 1 0 100%; order: -1; padding-top: 12px; padding-bottom: 12px; }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+
 .hint {
   margin: 0 0 16px;
   padding: 10px 12px;
@@ -498,6 +502,11 @@ form .segmented label {
 @media (prefers-color-scheme: dark) {
   .toast { background: #f3f4f6; color: #111827; }
 }
+
+/* ---- PDF rendering (off screen, A4 width) ---- */
+
+.pdf-render { position: fixed; top: 0; left: -10000px; }
+.pdf-render .doc { max-width: none; margin: 0; padding: 48px; font-size: 14px; border-radius: 0; box-shadow: none; }
 
 /* ---- Print: only the document ---- */
 
