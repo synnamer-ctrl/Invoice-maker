@@ -1,5 +1,6 @@
 import { computeTotals, esc, formatDate, moneyFormatter, multiline, num } from './format.js';
 import { inHistory, putInHistory } from './history.js';
+import { buildPdf, canShareFiles, preloadPdfTools, shareOrDownload } from './share.js';
 import { load, newId, save } from './storage.js';
 
 const DRAFT_KEY = 'draft';
@@ -18,6 +19,8 @@ const docEl = document.getElementById('doc');
 const companyHint = document.getElementById('company-hint');
 const historyNote = document.getElementById('history-note');
 const saveBtn = document.getElementById('save-doc');
+const shareBtn = document.getElementById('share-doc');
+const SHARE_LABEL = canShareFiles() ? 'Share PDF' : 'Download PDF';
 
 // Draft fields bound to same-named form inputs.
 const FIELDS = ['number', 'date', 'dueDate', 'paymentMethod', 'clientName', 'clientDetails', 'taxRate', 'deliveryCharge', 'notes'];
@@ -28,12 +31,23 @@ const SEARCH_THRESHOLD = 6;
 let company = null;
 let products = [];
 let draft = null;
+// A PDF that was made but could not be shared yet (see shareDoc), with the
+// document content it was made from.
+let pendingShare = null;
 
 export function initDocument(initialCompany, initialProducts) {
   company = initialCompany;
   products = initialProducts;
   const saved = load(DRAFT_KEY, null);
   draft = Array.isArray(saved?.items) ? saved : newDraft('invoice');
+  refreshDates();
+  // The app may stay open in the background overnight.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && refreshDates()) {
+      fillForm();
+      update();
+    }
+  });
 
   form.addEventListener('submit', (e) => e.preventDefault());
   form.addEventListener('input', onInput);
@@ -52,6 +66,9 @@ export function initDocument(initialCompany, initialProducts) {
   saveBtn.addEventListener('click', () => {
     if (saveDocument()) startNext();
   });
+  shareBtn.textContent = SHARE_LABEL;
+  shareBtn.addEventListener('click', shareDoc);
+  setTimeout(() => preloadPdfTools().catch(() => {}), 1500);
 
   fillForm();
   update();
@@ -176,6 +193,15 @@ function isBlankCustom(item) {
 
 function blankItem() {
   return { description: '', qty: '1', price: '' };
+}
+
+// A new, empty document left over from an earlier day gets today's dates,
+// unless the user set the dates. Returns true if anything changed.
+function refreshDates() {
+  if (draft.id || hasContent() || draft.datesSetByUser || !(draft.date < today())) return false;
+  draft.date = today();
+  draft.dueDate = today(DUE_IN_DAYS);
+  return true;
 }
 
 function hasContent() {
@@ -304,6 +330,7 @@ function onInput(e) {
     switchType(target.value);
   } else if (FIELDS.includes(target.name)) {
     draft[target.name] = target.value;
+    if (target.name === 'date' || target.name === 'dueDate') draft.datesSetByUser = true;
   }
   update();
 }
@@ -379,14 +406,54 @@ function printDoc() {
   window.print();
 }
 
+async function shareDoc() {
+  if (!saveDocument()) return;
+  const sharedId = draft.id;
+  const typeLabel = draft.type === 'receipt' ? 'Receipt' : 'Invoice';
+  const fileName = `${safeFileName([draft.number, draft.clientName].filter(Boolean).join(' ')) || typeLabel}.pdf`;
+  const total = moneyFormatter(company?.currency)(computeTotals(draft).total);
+  const text = `${typeLabel} ${draft.number}${company?.name ? ` from ${company.name}` : ''}: ${total}`;
+
+  shareBtn.disabled = true;
+  shareBtn.textContent = 'Making PDF...';
+  let blob = null;
+  try {
+    const content = JSON.stringify(draft);
+    blob = pendingShare?.content === content ? pendingShare.blob : await buildPdf(docEl);
+    pendingShare = null;
+    const how = await shareOrDownload(blob, fileName, text);
+    if (draft.id === sharedId) startNext(how === 'downloaded' ? 'Downloaded' : 'Shared');
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      // Share sheet closed: stay on this document so it can be shared again.
+    } else if (err.name === 'NotAllowedError' && blob) {
+      // Making the PDF took too long for the browser to allow the share sheet.
+      // Keep it; the next tap shares it straight away.
+      pendingShare = { content: JSON.stringify(draft), blob };
+      showToast('PDF ready. Tap Share PDF again.');
+    } else {
+      console.error(err);
+      alert('Could not make the PDF. Use Print instead, and choose Save as PDF.');
+    }
+  } finally {
+    shareBtn.disabled = false;
+    shareBtn.textContent = SHARE_LABEL;
+  }
+}
+
+function safeFileName(name) {
+  return name.replace(/[\u0000-\u001f\\/:*?"<>|]+/g, '').trim().replace(/\.+$/, '');
+}
+
 // A saved or printed document is finished: move on to the next number of
 // the same type. The finished one stays in History.
-function startNext() {
+function startNext(done = 'Saved') {
+  // done: what happened to the finished document, e.g. 'Saved' or 'Shared'.
   const { type, number } = draft;
   draft = newDraft(type);
   fillForm();
   update();
-  showToast(`Saved ${number}. Next: ${draft.number}`);
+  showToast(`${done} ${number}. Next: ${draft.number}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
